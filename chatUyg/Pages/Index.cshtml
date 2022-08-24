@@ -1,0 +1,133 @@
+﻿@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Home page";
+}
+
+<script src="~/lib/signalr/dist/browser/signalr.js"></script>
+<script src="~/lib/jquery/dist/jquery.min.js"></script>
+<script>
+
+var connection = new signalR.HubConnectionBuilder().withUrl("/chatHub").build();
+
+    $(document).ready(function () {
+        document.getElementById("sendButton").addEventListener("click", function (event) {
+            var user = document.getElementById("userInput").value;
+            var message = document.getElementById("messageInput").value;
+            connection.invoke("SendMessage", user, message).catch(function (err) {
+                return console.error(err.toString());
+            });
+            $("#messageInput").val('');
+            event.preventDefault();
+        });
+
+        document.getElementById("loginButton").addEventListener("click", function (event) {
+            var kadi = $("#userInput").val();
+            if (kadi != "") {
+                $("#girisEkrani").hide();
+                $("#chatEkrani").show();
+                $(".card-body").scrollTop($('.card-body')[0].scrollHeight - $('.card-body')[0].clientHeight);
+            } else {
+                alert("Kullanıcı adını boş bırakmayınız!");
+            }
+            event.preventDefault();
+        });
+        document.getElementById("sendButton").disabled = true;
+
+    });
+//Disable send button until connection is established
+
+
+connection.on("ReceiveMessage", function (user, message) {
+    var msg = message.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    if (user == $("#userInput").val()) {
+        var mesaj = `<div class="d-flex justify-content-end">
+                <div class="alert alert-info" role="alert">
+                   <b> `+ user + `</b>  <br/> ` + msg+ `
+                      </div>
+                 </div>`;
+        $("#messageList").append(mesaj);
+    } else {
+        var mesaj = `<div class="d-flex">
+                <div class="alert alert-dark" role="alert">
+                  <b>  `+ user + ` </b> <br/> ` + msg + `
+                      </div>
+                 </div>`;
+        $("#messageList").append(mesaj);
+    }
+    $(".card-body").scrollTop($('.card-body')[0].scrollHeight - $('.card-body')[0].clientHeight);
+});
+
+connection.start().then(function () {
+    document.getElementById("sendButton").disabled = false;
+}).catch(function (err) {
+    return console.error(err.toString());
+
+             
+});
+
+
+</script>
+
+<div class="row" style="margin-top:40px;">
+    <div class="container">
+        <div class="card bg-light" style="height:521px;">
+            <div class="card-header">
+                Sohbet Uygulaması
+            </div>
+            <div class="card-body" style="max-height: 80%;overflow-y: auto;">
+                    <!-- Giriş ekranı tasarımı başlangıcı -->
+                    <div id="girisEkrani">
+                        <div class="row">
+                          
+                            <div class="col-md-4 offset-md-4">
+                                <div class="input-group mb-3">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text" id="kullanici_adi">@@</span>
+                                    </div>
+                                    <input type="text" class="form-control" placeholder="Kullanıcı adı giriniz"
+                                           aria-label="Kullanıcı adı giriniz" aria-describedby="kullanici_adi" id="userInput">
+                                </div>
+                                <button type="button" class="form-control btn btn-success" id="loginButton">Giriş Yap</button>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Giriş ekranı tasarımı bitiş -->
+
+                    <div id="chatEkrani" style="display:none; height:100%">
+                        <div class="row">
+                            <div id="messageList" class="col-md-12">
+                                @{
+                                    foreach (var message in Model.Messages)
+                                    {
+                                        <div class="d-flex">
+                                            <div class="alert alert-dark" role="alert">
+                                                <b>@message.UserName</b><br /> @message.MessageText
+                                            </div>
+                                        </div>
+                                    }
+                                }
+
+                                <div class="d-flex justify-content-end">
+                                    @**<div class="alert alert-info" role="alert">
+                                Bu mesaj sizin tarafınızdan gönderildi! <b>@@israkbas</b>
+                            </div>*@
+                                </div>
+                            </div>
+                            <div id="yeniMesajAlani" class="col-md-12" style="position: absolute;bottom: 10px;">
+                                <div class="row">
+                                    <div class="col-md-9">
+                                        <input type="text" class="form-control" id="messageInput"
+                                               placeholder="Mesaj yazınız.." />
+                                    </div>
+                                    <div class="col-md-3">
+                                        <input type="button" id="sendButton" class="form-control btn btn-success" value="Gönder">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+    </div>
+</div>
